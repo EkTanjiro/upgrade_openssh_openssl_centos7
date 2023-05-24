@@ -78,3 +78,5 @@ $ systemctl daemon-reload
 #Add auto start
 $ chkconfig --add sshd
 $ chkconfig sshd on
+
+#Remember to enable UsePAM to yes in sshd_config
