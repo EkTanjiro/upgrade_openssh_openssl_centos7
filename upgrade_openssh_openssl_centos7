@@ -1,0 +1,80 @@
+Upgrade centos7 openssh & openssl to the latest version
+#centos #openssh #openssl #upgrade
+
+If it is manually compiled and installed, the success is not guaranteed. If it comes with, you do not need to uninstall the old version of openssh during the upgrade process.
+Try Yum update before installation. If you can update, you don’t need to look down
+# centos8 
+$ yum update openssh -y
+#Restart sshd
+$ systemctl restart sshd
+preparation
+system description
+System version: CentOS Linux release 7.7.1908 (core)
+openssh：OpenSSH_7.4p1, OpenSSL 1.0.2k-fips 26 Jan 2017
+openssl: OpenSSL 1.0.2k-fips 26 Jan 2017
+Download the latest package
+openssh
+openssl
+In this paper, we choose the following:
+openssh-8.2p1.tar.gz
+openssl-1.1.1m.tar.gz
+$ wget https://openbsd.hk/pub/OpenBSD/OpenSSH/portable/openssh-8.2p1.tar.gz
+
+$ wget https://ftp.openssl.org/source/openssl-1.1.1m.tar.gz
+Upgrade OpenSSL
+
+$ mv /usr/bin/openssl /usr/bin/openssl_backup
+install
+$ tar xzvf openssl-1.1.1m.tar.gz
+$ cd openssl-1.1.1g/
+$ ./config shared && make && make install
+Configure soft connection
+$ ln -s /usr/local/bin/openssl /usr/bin/openssl
+If implementedopenssl versionReport the following error
+openssl: error while loading shared libraries: libssl.so.1.1: cannot open shared object file: No such file or directory
+Execute the following command to solve the problem:
+$ ln -s /usr/local/lib64/libssl.so.1.1 /usr/lib64/
+$ ln -s /usr/local/lib64/libcrypto.so.1.1 /usr/lib64/
+
+$ openssl_backup version
+OpenSSL 1.0.2k-fips  26 Jan 2017
+Upgrade openssh
+Install required dependencies
+$ yum install zlib-devel  openssl-devel  pam-devel -y
+backups
+$ mkdir /etc/ssh_old
+$ mv /etc/ssh/* /etc/ssh_old/
+Decompress, compile and install
+$ tar xzvf openssh-8.2p1.tar.gz 
+$ cd openssh-8.2p1/
+
+$ ./configure --prefix=/usr/ --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/lib64/ --with-zlib --with-pam --with-md5-password --with-ssl-engine --with-selinux
+
+#Installation
+$ make && make install
+
+#Verification
+$  ssh -V
+OpenSSH_8.2p1, OpenSSL 1.1.1g  21 Apr 2020
+
+$ ls /etc/ssh
+moduli  ssh_config  sshd_config  ssh_host_dsa_key  ssh_host_dsa_key.pub  ssh_host_ecdsa_key  ssh_host_ecdsa_key.pub  ssh_host_ed25519_key  ssh_host_ed25519_key.pub  ssh_host_rsa_key  ssh_host_rsa_key.pub
+to configure
+1. Modify sshd_ config
+$ vim /etc/ssh/sshd_config
+#for your custom config for ssh like password login or root login
+2. Start up
+#Remove the previous SSH service to prevent conflicts with new ones
+$ mv /usr/lib/systemd/system/sshd.service /etc/ssh_old/sshd.service
+$ mv /usr/lib/systemd/system/sshd.socket /etc/ssh_old/sshd.socket
+
+#Copy some files in the unzip package
+$ cp -a contrib/redhat/sshd.init /etc/init.d/sshd
+
+#Restart
+$ systemctl restart sshd
+$ systemctl daemon-reload
+
+#Add auto start
+$ chkconfig --add sshd
+$ chkconfig sshd on
